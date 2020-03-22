@@ -18,43 +18,34 @@ img = cv2.imread(sys.argv[1], cv2.IMREAD_GRAYSCALE) #Read in user-provided image
 if img.any() == None:
     raise Exception("Could not load image")
 
-else:
-    height, width = img.shape[:2] #Get image dimensions
+height, width = img.shape[:2] #Get image dimensions
 
-    half_height = height/2
-    half_width = width/2
+th, im_th = cv2.threshold(outline, 125, 255,cv2.THRESH_BINARY_INV)
 
-    #to get more exact foreground/background detection, analyze each panel individually
-    first_panel = img[0:half_height, 0:half_width]
-    second_panel = img[0:half_height, half_width:width]
-    third_panel = img[half_height:height, 0:half_width]
-    fourth_panel = img[half_height:height, half_width:width] 
+im_floodfill = im_th.copy()
 
-    cv2.imshow("Outline", first_panel)
+h, w = im_th.shape[:2]
 
-    th, im_th = cv2.threshold(outline, 125, 255,cv2.THRESH_BINARY_INV)
+mask = np.zeros((h+2, w+2), np.uint8)
 
-    im_floodfill = im_th.copy()
+# Floodfill from point (0, 0)
 
-    h, w = im_th.shape[:2]
+cv2.floodFill(im_floodfill, mask, (0,0), 255);
 
-    mask = np.zeros((h+2, w+2), np.uint8)
+# Invert floodfilled image
 
-    # Floodfill from point (0, 0)
+im_floodfill_inv = cv2.bitwise_not(im_floodfill)
 
-    cv2.floodFill(im_floodfill, mask, (0,0), 255);
+# Combine the two images to get the foreground.
 
-    # Invert floodfilled image
+mask = im_th | im_floodfill_inv
 
-    im_floodfill_inv = cv2.bitwise_not(im_floodfill)
+# Display images.
 
-    # Combine the two images to get the foreground.
-
-    im_out = im_th | im_floodfill_inv
-
-    # Display images.
 
     
-    cv2.imshow("Foreground", im_out)
+cv2.imshow("Foreground", mask)
 
-    cv2.waitKey(0)
+cv2.waitKey(0)
+
+cv2.destroyAllWindows()
